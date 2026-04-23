@@ -5,122 +5,271 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>砺文工作室 - 管理后台</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        primary: '#6366f1',
-                        secondary: '#818cf8',
-                        dark: '#1e1b4b',
-                        light: '#f5f3ff',
+                        primary: '#0F172A',
+                        secondary: '#334155',
+                        accent: '#0369A1',
+                        light: '#F8FAFC',
+                        surface: '#FFFFFF',
+                        muted: '#64748B'
                     },
                     fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
+                        serif: ['Noto Serif SC', 'serif'],
+                        sans: ['Noto Sans SC', 'sans-serif']
                     }
                 }
             }
         }
     </script>
     <style>
+        html { scroll-behavior: smooth; }
+        body { font-family: 'Noto Sans SC', sans-serif; background: #F8FAFC; }
+        
         .glass { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px); }
-        .gradient-bg { background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%); }
-        .sidebar-item { transition: all 0.3s ease; }
-        .sidebar-item:hover { background: rgba(99, 102, 241, 0.1); transform: translateX(4px); }
-        .sidebar-item.active { background: rgba(99, 102, 241, 0.15); border-right: 3px solid #6366f1; }
+        .gradient-bg { background: linear-gradient(135deg, #0F172A 0%, #1E293B 50%, #334155 100%); }
+        .gradient-accent { background: linear-gradient(135deg, #0369A1 0%, #0EA5E9 100%); }
+        
+        .sidebar-item { transition: all 0.3s ease; border-radius: 12px; margin: 4px 12px; }
+        .sidebar-item:hover { background: rgba(3, 105, 161, 0.08); transform: translateX(4px); }
+        .sidebar-item.active { background: rgba(3, 105, 161, 0.12); color: #0369A1; font-weight: 500; }
+        .sidebar-item.active svg { color: #0369A1; }
+        
         .card-hover { transition: all 0.3s ease; }
-        .card-hover:hover { transform: translateY(-4px); box-shadow: 0 20px 40px rgba(99, 102, 241, 0.15); }
+        .card-hover:hover { transform: translateY(-4px); box-shadow: 0 20px 40px rgba(15, 23, 42, 0.1); }
+        
         .fade-in { animation: fadeIn 0.5s ease; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        .pulse-dot { animation: pulse 2s infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        
+        .hover-lift { transition: transform 0.3s ease, box-shadow 0.3s ease; }
+        .hover-lift:hover { transform: translateY(-4px); box-shadow: 0 12px 24px rgba(15, 23, 42, 0.12); }
+        
+        .btn-primary { background: linear-gradient(135deg, #0369A1 0%, #0EA5E9 100%); transition: all 0.3s ease; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(3, 105, 161, 0.3); }
+        
+        .btn-secondary { background: white; border: 1px solid #E2E8F0; transition: all 0.3s ease; }
+        .btn-secondary:hover { background: #F1F5F9; border-color: #CBD5E1; }
+        
+        .status-badge { font-size: 12px; font-weight: 500; padding: 4px 12px; border-radius: 20px; }
+        
+        .table-row { transition: background 0.2s ease; }
+        .table-row:hover { background: #F8FAFC; }
+        
+        .search-input { transition: all 0.3s ease; }
+        .search-input:focus { border-color: #0369A1; box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.1); }
+        
+        .modal-overlay { background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(4px); }
+        
         ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: #f1f1f1; }
-        ::-webkit-scrollbar-thumb { background: #c4b5fd; border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: #a78bfa; }
+        ::-webkit-scrollbar-track { background: #F1F5F9; }
+        ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+        
+        .stat-card { position: relative; overflow: hidden; }
+        .stat-card::before { content: ''; position: absolute; top: 0; right: 0; width: 100px; height: 100px; background: linear-gradient(135deg, transparent 0%, rgba(255,255,255,0.1) 100%); border-radius: 0 0 0 100px; }
+        
+        .contact-detail-row { padding: 12px 0; border-bottom: 1px solid #F1F5F9; }
+        .contact-detail-row:last-child { border-bottom: none; }
     </style>
 </head>
-<body class="font-sans bg-gray-50 min-h-screen">
+<body class="min-h-screen">
     <div id="app"></div>
 
     <script>
         const API_BASE = 'https://liwen-backend.xia13793816032.workers.dev/api';
         let token = localStorage.getItem('admin_token');
         let currentPage = 'dashboard';
+        let allContacts = [];
+        let allServices = [];
+        let allCases = [];
+
+        const SERVICE_TYPES = {
+            paper_edit: '论文润色',
+            exam_tutor: '考研辅导',
+            paper_check: '查重降重',
+            thesis_proposal: '开题报告',
+            graduation: '毕业论文指导',
+            sci_publish: 'SCI/SSCI发表',
+            other: '其他'
+        };
+
+        const STATUS_CONFIG = {
+            pending: { label: '待处理', class: 'bg-amber-50 text-amber-700 border border-amber-200' },
+            processing: { label: '处理中', class: 'bg-blue-50 text-blue-700 border border-blue-200' },
+            completed: { label: '已处理', class: 'bg-emerald-50 text-emerald-700 border border-emerald-200' },
+            deleted: { label: '已删除', class: 'bg-gray-50 text-gray-500 border border-gray-200' }
+        };
 
         const pages = {
-            login: `
-                <div class="min-h-screen gradient-bg flex items-center justify-center p-4">
-                    <div class="absolute inset-0 overflow-hidden">
-                        <div class="absolute -top-40 -right-40 w-80 h-80 bg-white/10 rounded-full blur-3xl"></div>
-                        <div class="absolute -bottom-40 -left-40 w-96 h-96 bg-white/10 rounded-full blur-3xl"></div>
+            login: renderLogin,
+            dashboard: renderDashboard,
+            contacts: renderContacts,
+            services: renderServices,
+            cases: renderCases
+        };
+
+        function renderLogin() {
+            return `
+                <div class="min-h-screen gradient-bg flex items-center justify-center p-4 relative overflow-hidden">
+                    <div class="absolute inset-0">
+                        <div class="absolute top-20 left-20 w-72 h-72 bg-accent/10 rounded-full blur-3xl"></div>
+                        <div class="absolute bottom-20 right-20 w-96 h-96 bg-white/5 rounded-full blur-3xl"></div>
                     </div>
                     <div class="relative glass rounded-3xl shadow-2xl p-8 w-full max-w-md fade-in">
                         <div class="text-center mb-8">
-                            <div class="w-16 h-16 bg-gradient-to-br from-primary to-purple-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+                            <div class="w-16 h-16 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
                                 <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
                                 </svg>
                             </div>
-                            <h1 class="text-2xl font-bold text-gray-800">管理后台</h1>
-                            <p class="text-gray-500 mt-2">砺文工作室</p>
+                            <h1 class="font-serif text-2xl font-bold text-primary">管理后台</h1>
+                            <p class="text-muted mt-2">砺文工作室</p>
                         </div>
                         <form id="loginForm" class="space-y-5">
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">用户名</label>
+                                <label class="block text-sm font-medium text-secondary mb-2">用户名</label>
                                 <input type="text" id="username" required
-                                    class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                                    class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-accent focus:ring-2 focus:ring-accent/10 outline-none transition-all search-input"
                                     placeholder="请输入用户名">
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">密码</label>
+                                <label class="block text-sm font-medium text-secondary mb-2">密码</label>
                                 <input type="password" id="password" required
-                                    class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                                    class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-accent focus:ring-2 focus:ring-accent/10 outline-none transition-all search-input"
                                     placeholder="请输入密码">
                             </div>
-                            <div id="loginError" class="hidden text-red-500 text-sm text-center"></div>
+                            <div id="loginError" class="hidden text-red-500 text-sm text-center py-2 bg-red-50 rounded-lg"></div>
                             <button type="submit"
-                                class="w-full py-3 bg-gradient-to-r from-primary to-purple-500 text-white rounded-xl font-medium hover:shadow-lg hover:shadow-primary/30 transition-all transform hover:-translate-y-0.5">
+                                class="w-full py-3 btn-primary text-white rounded-xl font-medium">
                                 登录
                             </button>
                         </form>
                     </div>
                 </div>
-            `,
-            dashboard: `
-                <div class="flex min-h-screen">
-                    ${getSidebar('dashboard')}
-                    <main class="flex-1 p-8 fade-in">
-                        <div class="mb-8">
-                            <h1 class="text-3xl font-bold text-gray-800">数据概览</h1>
-                            <p class="text-gray-500 mt-1">实时查看业务数据统计</p>
+            `;
+        }
+
+        function getSidebar(active) {
+            const menuItems = [
+                { id: 'dashboard', icon: 'M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z', label: '数据概览' },
+                { id: 'contacts', icon: 'M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z', label: '留言管理' },
+                { id: 'services', icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10', label: '服务管理' },
+                { id: 'cases', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z', label: '案例管理' },
+            ];
+            return `
+                <aside class="w-64 bg-white shadow-lg min-h-screen fixed left-0 top-0 z-40">
+                    <div class="p-6">
+                        <div class="flex items-center gap-3 mb-8">
+                            <div class="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-xl flex items-center justify-center">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h2 class="font-serif font-bold text-primary">砺文工作室</h2>
+                                <p class="text-xs text-muted">管理后台</p>
+                            </div>
                         </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8" id="statsCards"></div>
+                        <nav class="space-y-1">
+                            ${menuItems.map(item => `
+                                <a href="#" onclick="navigate('${item.id}'); return false;" 
+                                   class="sidebar-item flex items-center gap-3 px-4 py-3 text-secondary ${active === item.id ? 'active' : ''}">
+                                    <svg class="w-5 h-5 ${active === item.id ? 'text-accent' : 'text-muted'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${item.icon}"/>
+                                    </svg>
+                                    ${item.label}
+                                </a>
+                            `).join('')}
+                        </nav>
+                    </div>
+                    <div class="absolute bottom-0 left-0 right-0 p-6 border-t border-gray-100">
+                        <button onclick="logout()" class="flex items-center gap-3 px-4 py-3 text-muted hover:text-red-500 transition-colors w-full rounded-xl hover:bg-red-50">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                            </svg>
+                            退出登录
+                        </button>
+                    </div>
+                </aside>
+            `;
+        }
+
+        function renderDashboard() {
+            return `
+                <div class="flex min-h-screen bg-light">
+                    ${getSidebar('dashboard')}
+                    <main class="flex-1 ml-64 p-8 fade-in">
+                        <div class="mb-8">
+                            <h1 class="font-serif text-3xl font-bold text-primary">数据概览</h1>
+                            <p class="text-muted mt-1">实时查看业务数据统计</p>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8" id="statsCards">
+                            ${[1,2,3,4].map(() => `
+                                <div class="bg-white rounded-2xl shadow-sm p-6 card-hover stat-card">
+                                    <div class="animate-pulse">
+                                        <div class="h-4 bg-gray-200 rounded w-20 mb-2"></div>
+                                        <div class="h-8 bg-gray-200 rounded w-16"></div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             <div class="bg-white rounded-2xl shadow-sm p-6 card-hover">
-                                <h3 class="text-lg font-semibold text-gray-800 mb-4">最近留言</h3>
-                                <div id="recentContacts" class="space-y-3"></div>
+                                <div class="flex justify-between items-center mb-4">
+                                    <h3 class="font-serif text-lg font-semibold text-primary">最近留言</h3>
+                                    <a href="#" onclick="navigate('contacts'); return false;" class="text-accent text-sm hover:underline">查看全部</a>
+                                </div>
+                                <div id="recentContacts" class="space-y-3">
+                                    <div class="animate-pulse space-y-3">
+                                        ${[1,2,3].map(() => `
+                                            <div class="h-16 bg-gray-100 rounded-xl"></div>
+                                        `).join('')}
+                                    </div>
+                                </div>
                             </div>
                             <div class="bg-white rounded-2xl shadow-sm p-6 card-hover">
-                                <h3 class="text-lg font-semibold text-gray-800 mb-4">服务分布</h3>
-                                <div id="serviceDist" class="space-y-3"></div>
+                                <h3 class="font-serif text-lg font-semibold text-primary mb-4">服务分布</h3>
+                                <div id="serviceDist">
+                                    <div class="animate-pulse space-y-3">
+                                        ${[1,2,3,4].map(() => `
+                                            <div class="h-8 bg-gray-100 rounded-xl"></div>
+                                        `).join('')}
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </main>
                 </div>
-            `,
-            contacts: `
-                <div class="flex min-h-screen">
+            `;
+        }
+
+        function renderContacts() {
+            return `
+                <div class="flex min-h-screen bg-light">
                     ${getSidebar('contacts')}
-                    <main class="flex-1 p-8 fade-in">
-                        <div class="flex justify-between items-center mb-8">
+                    <main class="flex-1 ml-64 p-8 fade-in">
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
                             <div>
-                                <h1 class="text-3xl font-bold text-gray-800">留言管理</h1>
-                                <p class="text-gray-500 mt-1">查看和处理用户留言</p>
+                                <h1 class="font-serif text-3xl font-bold text-primary">留言管理</h1>
+                                <p class="text-muted mt-1">查看和处理用户留言</p>
                             </div>
                             <div class="flex gap-3">
-                                <select id="statusFilter" onchange="filterContacts()" class="px-4 py-2 rounded-xl border border-gray-200 focus:border-primary outline-none">
+                                <div class="relative">
+                                    <svg class="w-5 h-5 text-muted absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                                    </svg>
+                                    <input type="text" id="searchContacts" oninput="searchContacts()" 
+                                        class="pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 focus:border-accent outline-none search-input w-64"
+                                        placeholder="搜索姓名、电话、内容...">
+                                </div>
+                                <select id="statusFilter" onchange="filterContacts()" 
+                                    class="px-4 py-2.5 rounded-xl border border-gray-200 focus:border-accent outline-none bg-white">
                                     <option value="">全部状态</option>
                                     <option value="pending">待处理</option>
                                     <option value="processing">处理中</option>
@@ -133,194 +282,182 @@
                                 <table class="w-full">
                                     <thead class="bg-gray-50">
                                         <tr>
-                                            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-600">姓名</th>
-                                            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-600">联系方式</th>
-                                            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-600">服务类型</th>
-                                            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-600">留言内容</th>
-                                            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-600">状态</th>
-                                            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-600">时间</th>
-                                            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-600">操作</th>
+                                            <th class="px-6 py-4 text-left text-sm font-semibold text-secondary">姓名</th>
+                                            <th class="px-6 py-4 text-left text-sm font-semibold text-secondary">联系方式</th>
+                                            <th class="px-6 py-4 text-left text-sm font-semibold text-secondary">服务类型</th>
+                                            <th class="px-6 py-4 text-left text-sm font-semibold text-secondary">留言内容</th>
+                                            <th class="px-6 py-4 text-left text-sm font-semibold text-secondary">状态</th>
+                                            <th class="px-6 py-4 text-left text-sm font-semibold text-secondary">时间</th>
+                                            <th class="px-6 py-4 text-left text-sm font-semibold text-secondary">操作</th>
                                         </tr>
                                     </thead>
-                                    <tbody id="contactsTable" class="divide-y divide-gray-100"></tbody>
+                                    <tbody id="contactsTable" class="divide-y divide-gray-100">
+                                        <tr><td colspan="7" class="text-center py-12 text-muted">
+                                            <div class="animate-spin w-8 h-8 border-2 border-accent border-t-transparent rounded-full mx-auto mb-3"></div>
+                                            加载中...
+                                        </td></tr>
+                                    </tbody>
                                 </table>
                             </div>
                         </div>
                     </main>
                 </div>
-            `,
-            services: `
-                <div class="flex min-h-screen">
-                    ${getSidebar('services')}
-                    <main class="flex-1 p-8 fade-in">
-                        <div class="flex justify-between items-center mb-8">
-                            <div>
-                                <h1 class="text-3xl font-bold text-gray-800">服务管理</h1>
-                                <p class="text-gray-500 mt-1">管理服务项目和价格</p>
-                            </div>
-                            <button onclick="showServiceModal()" class="px-6 py-2.5 bg-gradient-to-r from-primary to-purple-500 text-white rounded-xl font-medium hover:shadow-lg transition-all">
-                                + 添加服务
+                <div id="contactDetailModal" class="hidden fixed inset-0 modal-overlay flex items-center justify-center z-50">
+                    <div class="bg-white rounded-2xl p-8 w-full max-w-2xl mx-4 fade-in max-h-[90vh] overflow-y-auto shadow-2xl">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="font-serif text-xl font-bold text-primary">留言详情</h3>
+                            <button onclick="closeContactModal()" class="text-muted hover:text-primary transition-colors">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
                             </button>
                         </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="servicesGrid"></div>
+                        <div id="contactDetailContent"></div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderServices() {
+            return `
+                <div class="flex min-h-screen bg-light">
+                    ${getSidebar('services')}
+                    <main class="flex-1 ml-64 p-8 fade-in">
+                        <div class="flex justify-between items-center mb-8">
+                            <div>
+                                <h1 class="font-serif text-3xl font-bold text-primary">服务管理</h1>
+                                <p class="text-muted mt-1">管理服务项目和价格</p>
+                            </div>
+                            <button onclick="showServiceModal()" class="px-6 py-2.5 btn-primary text-white rounded-xl font-medium flex items-center gap-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                </svg>
+                                添加服务
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="servicesGrid">
+                            <div class="animate-pulse space-y-4">
+                                ${[1,2,3].map(() => `
+                                    <div class="h-48 bg-gray-100 rounded-2xl"></div>
+                                `).join('')}
+                            </div>
+                        </div>
                     </main>
                 </div>
-                <div id="serviceModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div class="bg-white rounded-2xl p-8 w-full max-w-lg mx-4 fade-in">
-                        <h3 class="text-xl font-bold text-gray-800 mb-6" id="modalTitle">添加服务</h3>
+                <div id="serviceModal" class="hidden fixed inset-0 modal-overlay flex items-center justify-center z-50">
+                    <div class="bg-white rounded-2xl p-8 w-full max-w-lg mx-4 fade-in shadow-2xl">
+                        <h3 class="font-serif text-xl font-bold text-primary mb-6" id="modalTitle">添加服务</h3>
                         <form id="serviceForm" class="space-y-4">
                             <input type="hidden" id="serviceId">
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">服务名称</label>
-                                <input type="text" id="serviceName" required class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary outline-none">
+                                <label class="block text-sm font-medium text-secondary mb-2">服务名称</label>
+                                <input type="text" id="serviceName" required class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-accent outline-none search-input">
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">服务类型</label>
-                                <select id="serviceType" required class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary outline-none">
-                                    <option value="paper_edit">论文润色</option>
-                                    <option value="exam_tutor">考研辅导</option>
-                                    <option value="paper_check">查重降重</option>
-                                    <option value="thesis_proposal">开题报告</option>
-                                    <option value="graduation">毕业论文指导</option>
-                                    <option value="sci_publish">SCI/SSCI发表</option>
-                                    <option value="other">其他</option>
+                                <label class="block text-sm font-medium text-secondary mb-2">服务类型</label>
+                                <select id="serviceType" required class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-accent outline-none bg-white">
+                                    ${Object.entries(SERVICE_TYPES).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}
                                 </select>
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">简介</label>
-                                <input type="text" id="serviceDesc" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary outline-none">
+                                <label class="block text-sm font-medium text-secondary mb-2">简介</label>
+                                <input type="text" id="serviceDesc" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-accent outline-none search-input">
                             </div>
                             <div class="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">价格</label>
-                                    <input type="number" id="servicePrice" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary outline-none">
+                                    <label class="block text-sm font-medium text-secondary mb-2">价格</label>
+                                    <input type="number" id="servicePrice" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-accent outline-none search-input">
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">单位</label>
-                                    <input type="text" id="serviceUnit" value="元/项" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary outline-none">
+                                    <label class="block text-sm font-medium text-secondary mb-2">单位</label>
+                                    <input type="text" id="serviceUnit" value="元/项" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-accent outline-none search-input">
                                 </div>
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">详细说明</label>
-                                <textarea id="serviceDetail" rows="3" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary outline-none"></textarea>
+                                <label class="block text-sm font-medium text-secondary mb-2">详细说明</label>
+                                <textarea id="serviceDetail" rows="3" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-accent outline-none search-input resize-none"></textarea>
                             </div>
                             <div class="flex gap-3 pt-4">
-                                <button type="button" onclick="closeServiceModal()" class="flex-1 py-3 border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50">取消</button>
-                                <button type="submit" class="flex-1 py-3 bg-gradient-to-r from-primary to-purple-500 text-white rounded-xl">保存</button>
+                                <button type="button" onclick="closeServiceModal()" class="flex-1 py-3 btn-secondary rounded-xl text-secondary">取消</button>
+                                <button type="submit" class="flex-1 py-3 btn-primary text-white rounded-xl">保存</button>
                             </div>
                         </form>
                     </div>
                 </div>
-            `,
-            cases: `
-                <div class="flex min-h-screen">
+            `;
+        }
+
+        function renderCases() {
+            return `
+                <div class="flex min-h-screen bg-light">
                     ${getSidebar('cases')}
-                    <main class="flex-1 p-8 fade-in">
+                    <main class="flex-1 ml-64 p-8 fade-in">
                         <div class="flex justify-between items-center mb-8">
                             <div>
-                                <h1 class="text-3xl font-bold text-gray-800">案例管理</h1>
-                                <p class="text-gray-500 mt-1">管理成功案例展示</p>
+                                <h1 class="font-serif text-3xl font-bold text-primary">案例管理</h1>
+                                <p class="text-muted mt-1">管理成功案例展示</p>
                             </div>
-                            <button onclick="showCaseModal()" class="px-6 py-2.5 bg-gradient-to-r from-primary to-purple-500 text-white rounded-xl font-medium hover:shadow-lg transition-all">
-                                + 添加案例
+                            <button onclick="showCaseModal()" class="px-6 py-2.5 btn-primary text-white rounded-xl font-medium flex items-center gap-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                </svg>
+                                添加案例
                             </button>
                         </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="casesGrid"></div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="casesGrid">
+                            <div class="animate-pulse space-y-4">
+                                ${[1,2,3].map(() => `
+                                    <div class="h-64 bg-gray-100 rounded-2xl"></div>
+                                `).join('')}
+                            </div>
+                        </div>
                     </main>
                 </div>
-                <div id="caseModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div class="bg-white rounded-2xl p-8 w-full max-w-lg mx-4 fade-in">
-                        <h3 class="text-xl font-bold text-gray-800 mb-6" id="caseModalTitle">添加案例</h3>
+                <div id="caseModal" class="hidden fixed inset-0 modal-overlay flex items-center justify-center z-50">
+                    <div class="bg-white rounded-2xl p-8 w-full max-w-lg mx-4 fade-in shadow-2xl">
+                        <h3 class="font-serif text-xl font-bold text-primary mb-6" id="caseModalTitle">添加案例</h3>
                         <form id="caseForm" class="space-y-4">
                             <input type="hidden" id="caseId">
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">案例标题</label>
-                                <input type="text" id="caseTitle" required class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary outline-none">
+                                <label class="block text-sm font-medium text-secondary mb-2">案例标题</label>
+                                <input type="text" id="caseTitle" required class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-accent outline-none search-input">
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">服务类型</label>
-                                <select id="caseType" required class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary outline-none">
-                                    <option value="paper_edit">论文润色</option>
-                                    <option value="exam_tutor">考研辅导</option>
-                                    <option value="paper_check">查重降重</option>
-                                    <option value="thesis_proposal">开题报告</option>
-                                    <option value="graduation">毕业论文指导</option>
-                                    <option value="sci_publish">SCI/SSCI发表</option>
+                                <label class="block text-sm font-medium text-secondary mb-2">服务类型</label>
+                                <select id="caseType" required class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-accent outline-none bg-white">
+                                    ${Object.entries(SERVICE_TYPES).filter(([k]) => k !== 'other').map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}
                                 </select>
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">案例描述</label>
-                                <textarea id="caseDesc" rows="3" required class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary outline-none"></textarea>
+                                <label class="block text-sm font-medium text-secondary mb-2">案例描述</label>
+                                <textarea id="caseDesc" rows="3" required class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-accent outline-none search-input resize-none"></textarea>
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">成果/结果</label>
-                                <input type="text" id="caseResult" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary outline-none" placeholder="如：成功上岸、论文发表等">
+                                <label class="block text-sm font-medium text-secondary mb-2">成果/结果</label>
+                                <input type="text" id="caseResult" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-accent outline-none search-input" placeholder="如：成功上岸、论文发表等">
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">图片链接（可选）</label>
-                                <input type="url" id="caseImage" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary outline-none" placeholder="https://...">
+                                <label class="block text-sm font-medium text-secondary mb-2">图片链接（可选）</label>
+                                <input type="url" id="caseImage" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-accent outline-none search-input" placeholder="https://...">
                             </div>
                             <div class="flex gap-3 pt-4">
-                                <button type="button" onclick="closeCaseModal()" class="flex-1 py-3 border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50">取消</button>
-                                <button type="submit" class="flex-1 py-3 bg-gradient-to-r from-primary to-purple-500 text-white rounded-xl">保存</button>
+                                <button type="button" onclick="closeCaseModal()" class="flex-1 py-3 btn-secondary rounded-xl text-secondary">取消</button>
+                                <button type="submit" class="flex-1 py-3 btn-primary text-white rounded-xl">保存</button>
                             </div>
                         </form>
                     </div>
                 </div>
-            `
-        };
-
-        function getSidebar(active) {
-            const menuItems = [
-                { id: 'dashboard', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6', label: '数据概览' },
-                { id: 'contacts', icon: 'M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z', label: '留言管理' },
-                { id: 'services', icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10', label: '服务管理' },
-                { id: 'cases', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z', label: '案例管理' },
-            ];
-            return `
-                <aside class="w-64 bg-white shadow-sm min-h-screen fixed left-0 top-0">
-                    <div class="p-6">
-                        <div class="flex items-center gap-3 mb-8">
-                            <div class="w-10 h-10 bg-gradient-to-br from-primary to-purple-500 rounded-xl flex items-center justify-center">
-                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
-                                </svg>
-                            </div>
-                            <div>
-                                <h2 class="font-bold text-gray-800">砺文工作室</h2>
-                                <p class="text-xs text-gray-500">管理后台</p>
-                            </div>
-                        </div>
-                        <nav class="space-y-1">
-                            ${menuItems.map(item => `
-                                <a href="#" onclick="navigate('${item.id}')" class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 ${active === item.id ? 'active text-primary font-medium' : ''}">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${item.icon}"/>
-                                    </svg>
-                                    ${item.label}
-                                </a>
-                            `).join('')}
-                        </nav>
-                    </div>
-                    <div class="absolute bottom-0 left-0 right-0 p-6 border-t">
-                        <button onclick="logout()" class="flex items-center gap-3 px-4 py-3 text-gray-500 hover:text-red-500 transition-colors w-full">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
-                            </svg>
-                            退出登录
-                        </button>
-                    </div>
-                </aside>
             `;
         }
 
         function render() {
             const app = document.getElementById('app');
-            if (!token) {
-                app.innerHTML = pages.login;
+            const renderFn = pages[currentPage] || pages.dashboard;
+            app.innerHTML = renderFn();
+            
+            if (currentPage === 'login') {
                 document.getElementById('loginForm').addEventListener('submit', handleLogin);
-            } else {
-                app.innerHTML = pages[currentPage];
+            } else if (token) {
                 loadPageData();
             }
         }
@@ -357,6 +494,7 @@
         function logout() {
             token = null;
             localStorage.removeItem('admin_token');
+            currentPage = 'login';
             render();
         }
 
@@ -384,55 +522,58 @@
                 const contacts = await contactsRes.json();
                 const services = await servicesRes.json();
                 
+                allContacts = contacts.data || [];
+                allServices = services.data || [];
+                
                 const statsCards = document.getElementById('statsCards');
                 statsCards.innerHTML = `
-                    <div class="bg-white rounded-2xl shadow-sm p-6 card-hover">
+                    <div class="bg-white rounded-2xl shadow-sm p-6 card-hover stat-card border-l-4 border-blue-500">
                         <div class="flex items-center justify-between">
                             <div>
-                                <p class="text-gray-500 text-sm">总留言</p>
-                                <p class="text-3xl font-bold text-gray-800 mt-1">${stats.data?.total_contacts || 0}</p>
+                                <p class="text-muted text-sm">总留言</p>
+                                <p class="text-3xl font-bold text-primary mt-1">${stats.data?.total_contacts || 0}</p>
                             </div>
-                            <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div class="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center">
+                                <svg class="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
                                 </svg>
                             </div>
                         </div>
                     </div>
-                    <div class="bg-white rounded-2xl shadow-sm p-6 card-hover">
+                    <div class="bg-white rounded-2xl shadow-sm p-6 card-hover stat-card border-l-4 border-amber-500">
                         <div class="flex items-center justify-between">
                             <div>
-                                <p class="text-gray-500 text-sm">待处理</p>
-                                <p class="text-3xl font-bold text-orange-500 mt-1">${stats.data?.pending_contacts || 0}</p>
+                                <p class="text-muted text-sm">待处理</p>
+                                <p class="text-3xl font-bold text-amber-600 mt-1">${stats.data?.pending_contacts || 0}</p>
                             </div>
-                            <div class="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center">
-                                <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div class="w-12 h-12 bg-amber-50 rounded-xl flex items-center justify-center">
+                                <svg class="w-6 h-6 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                 </svg>
                             </div>
                         </div>
                     </div>
-                    <div class="bg-white rounded-2xl shadow-sm p-6 card-hover">
+                    <div class="bg-white rounded-2xl shadow-sm p-6 card-hover stat-card border-l-4 border-emerald-500">
                         <div class="flex items-center justify-between">
                             <div>
-                                <p class="text-gray-500 text-sm">服务项目</p>
-                                <p class="text-3xl font-bold text-green-500 mt-1">${stats.data?.total_services || 0}</p>
+                                <p class="text-muted text-sm">服务项目</p>
+                                <p class="text-3xl font-bold text-emerald-600 mt-1">${stats.data?.total_services || 0}</p>
                             </div>
-                            <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-                                <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div class="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center">
+                                <svg class="w-6 h-6 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
                                 </svg>
                             </div>
                         </div>
                     </div>
-                    <div class="bg-white rounded-2xl shadow-sm p-6 card-hover">
+                    <div class="bg-white rounded-2xl shadow-sm p-6 card-hover stat-card border-l-4 border-purple-500">
                         <div class="flex items-center justify-between">
                             <div>
-                                <p class="text-gray-500 text-sm">成功案例</p>
-                                <p class="text-3xl font-bold text-purple-500 mt-1">${stats.data?.total_cases || 0}</p>
+                                <p class="text-muted text-sm">成功案例</p>
+                                <p class="text-3xl font-bold text-purple-600 mt-1">${stats.data?.total_cases || 0}</p>
                             </div>
-                            <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
-                                <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div class="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center">
+                                <svg class="w-6 h-6 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                 </svg>
                             </div>
@@ -441,34 +582,38 @@
                 `;
 
                 const recentContacts = document.getElementById('recentContacts');
-                if (contacts.success && contacts.data?.length > 0) {
-                    recentContacts.innerHTML = contacts.data.slice(0, 5).map(c => `
-                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                            <div>
-                                <p class="font-medium text-gray-800">${c.name}</p>
-                                <p class="text-sm text-gray-500 truncate max-w-xs">${c.message || '无留言'}</p>
+                if (allContacts.length > 0) {
+                    recentContacts.innerHTML = allContacts.slice(0, 5).map(c => `
+                        <div class="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors cursor-pointer" onclick="showContactDetail(${c.id})">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center text-white font-medium text-sm">
+                                    ${c.name.charAt(0)}
+                                </div>
+                                <div>
+                                    <p class="font-medium text-primary">${c.name}</p>
+                                    <p class="text-sm text-muted truncate max-w-xs">${c.message || '无留言内容'}</p>
+                                </div>
                             </div>
-                            <span class="px-3 py-1 text-xs rounded-full ${getStatusClass(c.status)}">${getStatusText(c.status)}</span>
+                            <span class="status-badge ${STATUS_CONFIG[c.status]?.class || ''}">${STATUS_CONFIG[c.status]?.label || c.status}</span>
                         </div>
                     `).join('');
                 } else {
-                    recentContacts.innerHTML = '<p class="text-gray-500 text-center py-4">暂无留言</p>';
+                    recentContacts.innerHTML = '<p class="text-muted text-center py-8">暂无留言</p>';
                 }
 
                 const serviceDist = document.getElementById('serviceDist');
-                const typeNames = { paper_edit: '论文润色', exam_tutor: '考研辅导', paper_check: '查重降重', thesis_proposal: '开题报告', graduation: '毕业论文', sci_publish: 'SCI发表' };
-                if (services.success && services.data?.length > 0) {
+                if (allServices.length > 0) {
                     const counts = {};
-                    services.data.forEach(s => counts[s.service_type] = (counts[s.service_type] || 0) + 1);
-                    const total = services.data.length;
+                    allServices.forEach(s => counts[s.service_type] = (counts[s.service_type] || 0) + 1);
+                    const total = allServices.length;
                     serviceDist.innerHTML = Object.entries(counts).map(([type, count]) => `
-                        <div class="flex items-center justify-between">
-                            <span class="text-gray-600">${typeNames[type] || type}</span>
-                            <div class="flex items-center gap-2">
+                        <div class="flex items-center justify-between py-2">
+                            <span class="text-secondary">${SERVICE_TYPES[type] || type}</span>
+                            <div class="flex items-center gap-3">
                                 <div class="w-32 h-2 bg-gray-100 rounded-full overflow-hidden">
-                                    <div class="h-full bg-gradient-to-r from-primary to-purple-500 rounded-full" style="width: ${(count/total)*100}%"></div>
+                                    <div class="h-full gradient-accent rounded-full" style="width: ${(count/total)*100}%"></div>
                                 </div>
-                                <span class="text-sm text-gray-500">${count}</span>
+                                <span class="text-sm text-muted w-6">${count}</span>
                             </div>
                         </div>
                     `).join('');
@@ -483,44 +628,134 @@
                 const res = await fetch(`${API_BASE}/admin/contacts`, { headers: authHeaders() });
                 const data = await res.json();
                 
-                const tbody = document.getElementById('contactsTable');
-                if (data.success && data.data?.length > 0) {
-                    window.allContacts = data.data;
-                    renderContacts(data.data);
-                } else {
-                    tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-gray-500">暂无留言数据</td></tr>';
+                if (data.success) {
+                    allContacts = data.data || [];
+                    renderContactsTable(allContacts);
                 }
             } catch (err) {
                 console.error('Load contacts error:', err);
             }
         }
 
-        function renderContacts(contacts) {
+        function renderContactsTable(contacts) {
             const tbody = document.getElementById('contactsTable');
-            const typeNames = { paper_edit: '论文润色', exam_tutor: '考研辅导', paper_check: '查重降重', thesis_proposal: '开题报告', graduation: '毕业论文', sci_publish: 'SCI发表' };
+            if (contacts.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-12 text-muted">暂无留言数据</td></tr>';
+                return;
+            }
+            
             tbody.innerHTML = contacts.map(c => `
-                <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4 font-medium text-gray-800">${c.name}</td>
-                    <td class="px-6 py-4 text-gray-600">${c.phone}${c.email ? '<br>' + c.email : ''}</td>
-                    <td class="px-6 py-4 text-gray-600">${typeNames[c.service_type] || c.service_type || '-'}</td>
-                    <td class="px-6 py-4 text-gray-600 max-w-xs truncate">${c.message || '-'}</td>
-                    <td class="px-6 py-4"><span class="px-3 py-1 text-xs rounded-full ${getStatusClass(c.status)}">${getStatusText(c.status)}</span></td>
-                    <td class="px-6 py-4 text-gray-500 text-sm">${new Date(c.created_at).toLocaleString('zh-CN')}</td>
+                <tr class="table-row cursor-pointer" onclick="showContactDetail(${c.id})">
+                    <td class="px-6 py-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center text-white font-medium text-xs">
+                                ${c.name.charAt(0)}
+                            </div>
+                            <span class="font-medium text-primary">${c.name}</span>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 text-secondary text-sm">${c.phone}${c.email ? '<br><span class="text-muted">' + c.email + '</span>' : ''}</td>
+                    <td class="px-6 py-4 text-secondary text-sm">${SERVICE_TYPES[c.service_type] || c.service_type || '-'}</td>
+                    <td class="px-6 py-4 text-secondary text-sm max-w-xs truncate">${c.message || '-'}</td>
+                    <td class="px-6 py-4"><span class="status-badge ${STATUS_CONFIG[c.status]?.class || ''}">${STATUS_CONFIG[c.status]?.label || c.status}</span></td>
+                    <td class="px-6 py-4 text-muted text-sm">${formatDate(c.created_at)}</td>
                     <td class="px-6 py-4">
                         <div class="flex gap-2">
-                            <button onclick="updateContactStatus(${c.id}, 'processing')" class="text-blue-500 hover:text-blue-700 text-sm">处理</button>
-                            <button onclick="updateContactStatus(${c.id}, 'completed')" class="text-green-500 hover:text-green-700 text-sm">完成</button>
-                            <button onclick="deleteContact(${c.id})" class="text-red-500 hover:text-red-700 text-sm">删除</button>
+                            <button onclick="event.stopPropagation(); updateContactStatus(${c.id}, 'processing')" class="text-blue-500 hover:text-blue-700 text-sm font-medium">处理</button>
+                            <button onclick="event.stopPropagation(); updateContactStatus(${c.id}, 'completed')" class="text-emerald-500 hover:text-emerald-700 text-sm font-medium">完成</button>
+                            <button onclick="event.stopPropagation(); deleteContact(${c.id})" class="text-red-400 hover:text-red-600 text-sm font-medium">删除</button>
                         </div>
                     </td>
                 </tr>
             `).join('');
         }
 
-        function filterContacts() {
+        function searchContacts() {
+            const keyword = document.getElementById('searchContacts').value.toLowerCase();
             const status = document.getElementById('statusFilter').value;
-            const filtered = status ? window.allContacts.filter(c => c.status === status) : window.allContacts;
-            renderContacts(filtered);
+            filterAndRenderContacts(keyword, status);
+        }
+
+        function filterContacts() {
+            const keyword = document.getElementById('searchContacts').value.toLowerCase();
+            const status = document.getElementById('statusFilter').value;
+            filterAndRenderContacts(keyword, status);
+        }
+
+        function filterAndRenderContacts(keyword, status) {
+            let filtered = allContacts;
+            if (status) filtered = filtered.filter(c => c.status === status);
+            if (keyword) {
+                filtered = filtered.filter(c => 
+                    c.name.toLowerCase().includes(keyword) ||
+                    c.phone.includes(keyword) ||
+                    (c.message && c.message.toLowerCase().includes(keyword))
+                );
+            }
+            renderContactsTable(filtered);
+        }
+
+        function showContactDetail(id) {
+            const contact = allContacts.find(c => c.id === id);
+            if (!contact) return;
+            
+            const modal = document.getElementById('contactDetailModal');
+            const content = document.getElementById('contactDetailContent');
+            
+            content.innerHTML = `
+                <div class="space-y-4">
+                    <div class="flex items-center gap-4 mb-6">
+                        <div class="w-14 h-14 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center text-white font-bold text-xl">
+                            ${contact.name.charAt(0)}
+                        </div>
+                        <div>
+                            <h4 class="text-xl font-bold text-primary">${contact.name}</h4>
+                            <span class="status-badge ${STATUS_CONFIG[contact.status]?.class || ''}">${STATUS_CONFIG[contact.status]?.label || contact.status}</span>
+                        </div>
+                    </div>
+                    <div class="contact-detail-row">
+                        <span class="text-muted text-sm">联系电话</span>
+                        <p class="text-primary font-medium mt-1">${contact.phone}</p>
+                    </div>
+                    ${contact.email ? `
+                    <div class="contact-detail-row">
+                        <span class="text-muted text-sm">电子邮箱</span>
+                        <p class="text-primary font-medium mt-1">${contact.email}</p>
+                    </div>` : ''}
+                    <div class="contact-detail-row">
+                        <span class="text-muted text-sm">服务类型</span>
+                        <p class="text-primary font-medium mt-1">${SERVICE_TYPES[contact.service_type] || contact.service_type || '未指定'}</p>
+                    </div>
+                    <div class="contact-detail-row">
+                        <span class="text-muted text-sm">提交时间</span>
+                        <p class="text-primary font-medium mt-1">${formatDateTime(contact.created_at)}</p>
+                    </div>
+                    ${contact.ip_address ? `
+                    <div class="contact-detail-row">
+                        <span class="text-muted text-sm">IP 地址</span>
+                        <p class="text-primary font-medium mt-1">${contact.ip_address}</p>
+                    </div>` : ''}
+                    <div class="contact-detail-row">
+                        <span class="text-muted text-sm">留言内容</span>
+                        <div class="mt-2 p-4 bg-gray-50 rounded-xl text-primary leading-relaxed">${contact.message || '无留言内容'}</div>
+                    </div>
+                    ${contact.admin_note ? `
+                    <div class="contact-detail-row">
+                        <span class="text-muted text-sm">备注</span>
+                        <div class="mt-2 p-4 bg-blue-50 rounded-xl text-primary">${contact.admin_note}</div>
+                    </div>` : ''}
+                    <div class="flex gap-3 pt-4">
+                        <button onclick="updateContactStatus(${contact.id}, 'processing'); closeContactModal();" class="flex-1 py-3 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors">标记处理中</button>
+                        <button onclick="updateContactStatus(${contact.id}, 'completed'); closeContactModal();" class="flex-1 py-3 bg-emerald-500 text-white rounded-xl hover:bg-emerald-600 transition-colors">标记已完成</button>
+                    </div>
+                </div>
+            `;
+            
+            modal.classList.remove('hidden');
+        }
+
+        function closeContactModal() {
+            document.getElementById('contactDetailModal').classList.add('hidden');
         }
 
         async function updateContactStatus(id, status) {
@@ -531,6 +766,7 @@
                     body: JSON.stringify({ status })
                 });
                 loadContacts();
+                if (currentPage === 'dashboard') loadDashboard();
             } catch (err) {
                 console.error('Update error:', err);
             }
@@ -555,32 +791,31 @@
                 const data = await res.json();
                 
                 const grid = document.getElementById('servicesGrid');
-                const typeNames = { paper_edit: '论文润色', exam_tutor: '考研辅导', paper_check: '查重降重', thesis_proposal: '开题报告', graduation: '毕业论文', sci_publish: 'SCI发表' };
-                
                 if (data.success && data.data?.length > 0) {
+                    allServices = data.data;
                     grid.innerHTML = data.data.map(s => `
-                        <div class="bg-white rounded-2xl shadow-sm p-6 card-hover">
+                        <div class="bg-white rounded-2xl shadow-sm p-6 card-hover border border-gray-100">
                             <div class="flex justify-between items-start mb-4">
-                                <span class="px-3 py-1 bg-primary/10 text-primary text-xs rounded-full">${typeNames[s.service_type] || s.service_type}</span>
+                                <span class="px-3 py-1 bg-accent/10 text-accent text-xs rounded-full font-medium">${SERVICE_TYPES[s.service_type] || s.service_type}</span>
                                 <div class="flex gap-2">
-                                    <button onclick="editService(${JSON.stringify(s).replace(/"/g, '&quot;')})" class="text-gray-400 hover:text-primary">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                    <button onclick="editService(${JSON.stringify(s).replace(/"/g, '&quot;')})" class="p-2 text-muted hover:text-accent hover:bg-accent/10 rounded-lg transition-all">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                                     </button>
-                                    <button onclick="deleteService(${s.id})" class="text-gray-400 hover:text-red-500">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                    <button onclick="deleteService(${s.id})" class="p-2 text-muted hover:text-red-500 hover:bg-red-50 rounded-lg transition-all">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                                     </button>
                                 </div>
                             </div>
-                            <h3 class="text-lg font-semibold text-gray-800 mb-2">${s.name}</h3>
-                            <p class="text-gray-500 text-sm mb-4">${s.short_description || '暂无简介'}</p>
-                            <div class="flex items-center justify-between">
-                                <span class="text-2xl font-bold text-primary">${s.price || 0}<span class="text-sm text-gray-500 font-normal"> ${s.price_unit || '元/项'}</span></span>
-                                <span class="text-xs ${s.is_active ? 'text-green-500' : 'text-gray-400'}">${s.is_active ? '已上架' : '已下架'}</span>
+                            <h3 class="font-serif text-lg font-bold text-primary mb-2">${s.name}</h3>
+                            <p class="text-muted text-sm mb-4 line-clamp-2">${s.short_description || '暂无简介'}</p>
+                            <div class="flex items-center justify-between pt-4 border-t border-gray-100">
+                                <span class="text-2xl font-bold text-primary">${s.price || 0}<span class="text-sm text-muted font-normal"> ${s.price_unit || '元/项'}</span></span>
+                                <span class="text-xs px-2 py-1 rounded-full ${s.is_active ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-100 text-gray-500'}">${s.is_active ? '已上架' : '已下架'}</span>
                             </div>
                         </div>
                     `).join('');
                 } else {
-                    grid.innerHTML = '<p class="text-gray-500 col-span-3 text-center py-8">暂无服务数据</p>';
+                    grid.innerHTML = '<p class="text-muted col-span-3 text-center py-12">暂无服务数据</p>';
                 }
             } catch (err) {
                 console.error('Load services error:', err);
@@ -610,46 +845,12 @@
             document.getElementById('serviceModal').classList.add('hidden');
         }
 
-        document.addEventListener('submit', async (e) => {
-            if (e.target.id === 'serviceForm') {
-                e.preventDefault();
-                const id = document.getElementById('serviceId').value;
-                const data = {
-                    name: document.getElementById('serviceName').value,
-                    service_type: document.getElementById('serviceType').value,
-                    short_description: document.getElementById('serviceDesc').value,
-                    price: Number(document.getElementById('servicePrice').value) || 0,
-                    price_unit: document.getElementById('serviceUnit').value,
-                    detail: document.getElementById('serviceDetail').value
-                };
-                
-                try {
-                    const url = id ? `${API_BASE}/admin/services/${id}` : `${API_BASE}/admin/services`;
-                    const method = id ? 'PUT' : 'POST';
-                    await fetch(url, {
-                        method,
-                        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
-                        body: JSON.stringify(data)
-                    });
-                    closeServiceModal();
-                    loadServices();
-                } catch (err) {
-                    console.error('Save service error:', err);
-                }
-            }
-        });
-
         async function deleteService(id) {
             if (!confirm('确定要删除这个服务吗？')) return;
             try {
-                await fetch(`${API_BASE}/admin/services/${id}`, {
-                    method: 'DELETE',
-                    headers: authHeaders()
-                });
+                await fetch(`${API_BASE}/admin/services/${id}`, { method: 'DELETE', headers: authHeaders() });
                 loadServices();
-            } catch (err) {
-                console.error('Delete error:', err);
-            }
+            } catch (err) { console.error('Delete error:', err); }
         }
 
         async function loadCases() {
@@ -658,36 +859,34 @@
                 const data = await res.json();
                 
                 const grid = document.getElementById('casesGrid');
-                const typeNames = { paper_edit: '论文润色', exam_tutor: '考研辅导', paper_check: '查重降重', thesis_proposal: '开题报告', graduation: '毕业论文', sci_publish: 'SCI发表' };
-                
                 if (data.success && data.data?.length > 0) {
+                    allCases = data.data;
                     grid.innerHTML = data.data.filter(c => c.status !== 'deleted').map(c => `
-                        <div class="bg-white rounded-2xl shadow-sm overflow-hidden card-hover">
-                            ${c.image_url ? `<img src="${c.image_url}" class="w-full h-40 object-cover" alt="">` : '<div class="w-full h-40 bg-gradient-to-br from-primary/10 to-purple-500/10 flex items-center justify-center"><svg class="w-12 h-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></div>'}
+                        <div class="bg-white rounded-2xl shadow-sm overflow-hidden card-hover border border-gray-100">
+                            ${c.image_url ? `<img src="${c.image_url}" class="w-full h-48 object-cover" alt="">` : 
+                            '<div class="w-full h-48 bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center"><svg class="w-16 h-16 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></div>'}
                             <div class="p-6">
                                 <div class="flex justify-between items-start mb-3">
-                                    <span class="px-3 py-1 bg-primary/10 text-primary text-xs rounded-full">${typeNames[c.service_type] || c.service_type}</span>
+                                    <span class="px-3 py-1 bg-accent/10 text-accent text-xs rounded-full font-medium">${SERVICE_TYPES[c.service_type] || c.service_type}</span>
                                     <div class="flex gap-2">
-                                        <button onclick='editCase(${JSON.stringify(c).replace(/'/g, "\\'")})' class="text-gray-400 hover:text-primary">
-                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                        <button onclick='editCase(${JSON.stringify(c).replace(/'/g, "\\'")})' class="p-2 text-muted hover:text-accent hover:bg-accent/10 rounded-lg transition-all">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                                         </button>
-                                        <button onclick="deleteCase(${c.id})" class="text-gray-400 hover:text-red-500">
-                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                        <button onclick="deleteCase(${c.id})" class="p-2 text-muted hover:text-red-500 hover:bg-red-50 rounded-lg transition-all">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                                         </button>
                                     </div>
                                 </div>
-                                <h3 class="text-lg font-semibold text-gray-800 mb-2">${c.title}</h3>
-                                <p class="text-gray-500 text-sm mb-3 line-clamp-2">${c.description}</p>
-                                ${c.result ? `<div class="flex items-center gap-2 text-green-600 text-sm"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>${c.result}</div>` : ''}
+                                <h3 class="font-serif text-lg font-bold text-primary mb-2">${c.title}</h3>
+                                <p class="text-muted text-sm mb-3 line-clamp-2">${c.description}</p>
+                                ${c.result ? `<div class="flex items-center gap-2 text-emerald-600 text-sm bg-emerald-50 px-3 py-2 rounded-lg"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>${c.result}</div>` : ''}
                             </div>
                         </div>
                     `).join('');
                 } else {
-                    grid.innerHTML = '<p class="text-gray-500 col-span-3 text-center py-8">暂无案例数据</p>';
+                    grid.innerHTML = '<p class="text-muted col-span-3 text-center py-12">暂无案例数据</p>';
                 }
-            } catch (err) {
-                console.error('Load cases error:', err);
-            }
+            } catch (err) { console.error('Load cases error:', err); }
         }
 
         function showCaseModal() {
@@ -712,7 +911,33 @@
             document.getElementById('caseModal').classList.add('hidden');
         }
 
+        async function deleteCase(id) {
+            if (!confirm('确定要删除这个案例吗？')) return;
+            try {
+                await fetch(`${API_BASE}/admin/cases/${id}`, { method: 'DELETE', headers: authHeaders() });
+                loadCases();
+            } catch (err) { console.error('Delete error:', err); }
+        }
+
         document.addEventListener('submit', async (e) => {
+            if (e.target.id === 'serviceForm') {
+                e.preventDefault();
+                const id = document.getElementById('serviceId').value;
+                const data = {
+                    name: document.getElementById('serviceName').value,
+                    service_type: document.getElementById('serviceType').value,
+                    short_description: document.getElementById('serviceDesc').value,
+                    price: Number(document.getElementById('servicePrice').value) || 0,
+                    price_unit: document.getElementById('serviceUnit').value,
+                    detail: document.getElementById('serviceDetail').value
+                };
+                try {
+                    const url = id ? `${API_BASE}/admin/services/${id}` : `${API_BASE}/admin/services`;
+                    await fetch(url, { method: id ? 'PUT' : 'POST', headers: { ...authHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+                    closeServiceModal();
+                    loadServices();
+                } catch (err) { console.error('Save error:', err); }
+            }
             if (e.target.id === 'caseForm') {
                 e.preventDefault();
                 const id = document.getElementById('caseId').value;
@@ -723,53 +948,29 @@
                     result: document.getElementById('caseResult').value,
                     image_url: document.getElementById('caseImage').value
                 };
-                
                 try {
                     const url = id ? `${API_BASE}/admin/cases/${id}` : `${API_BASE}/admin/cases`;
-                    const method = id ? 'PUT' : 'POST';
-                    await fetch(url, {
-                        method,
-                        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
-                        body: JSON.stringify(data)
-                    });
+                    await fetch(url, { method: id ? 'PUT' : 'POST', headers: { ...authHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
                     closeCaseModal();
                     loadCases();
-                } catch (err) {
-                    console.error('Save case error:', err);
-                }
+                } catch (err) { console.error('Save error:', err); }
             }
         });
-
-        async function deleteCase(id) {
-            if (!confirm('确定要删除这个案例吗？')) return;
-            try {
-                await fetch(`${API_BASE}/admin/cases/${id}`, {
-                    method: 'DELETE',
-                    headers: authHeaders()
-                });
-                loadCases();
-            } catch (err) {
-                console.error('Delete error:', err);
-            }
-        }
 
         function authHeaders() {
             return { 'Authorization': `Bearer ${token}` };
         }
 
-        function getStatusClass(status) {
-            const classes = {
-                pending: 'bg-orange-100 text-orange-600',
-                processing: 'bg-blue-100 text-blue-600',
-                completed: 'bg-green-100 text-green-600',
-                deleted: 'bg-gray-100 text-gray-600'
-            };
-            return classes[status] || 'bg-gray-100 text-gray-600';
+        function formatDate(dateStr) {
+            if (!dateStr) return '-';
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
         }
 
-        function getStatusText(status) {
-            const texts = { pending: '待处理', processing: '处理中', completed: '已处理', deleted: '已删除' };
-            return texts[status] || status;
+        function formatDateTime(dateStr) {
+            if (!dateStr) return '-';
+            const date = new Date(dateStr);
+            return date.toLocaleString('zh-CN');
         }
 
         render();
